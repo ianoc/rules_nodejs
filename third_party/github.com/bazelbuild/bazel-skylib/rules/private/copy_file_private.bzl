@@ -138,7 +138,7 @@ _copy_directory = rule(
     implementation = _copy_file_impl,
     provides = [DefaultInfo],
     attrs = dict(_ATTRS, **{
-        "expanded_src": attr.label(),
+        "expanded_src": attr.label_list(mandatory = True, allow_empty = True),
         "is_directory": attr.bool(default = True),
         # Cannot declare out as an output here, because there's no API for declaring
         # TreeArtifact outputs.
