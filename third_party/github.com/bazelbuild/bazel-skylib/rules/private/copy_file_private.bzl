@@ -193,14 +193,16 @@ def copy_file(name, src, out, is_directory = False, is_executable = False, allow
     """
 
     copy_file_impl = _copy_file
+    s = src
     if is_executable:
         copy_file_impl = _copy_xfile
     elif is_directory:
         copy_file_impl = _copy_directory
+        s = glob(["%s/**" % (src)])
 
     copy_file_impl(
         name = name,
-        src = src,
+        src = s,
         out = out,
         is_windows = select({
             "@bazel_tools//src/conditions:host_windows": True,
