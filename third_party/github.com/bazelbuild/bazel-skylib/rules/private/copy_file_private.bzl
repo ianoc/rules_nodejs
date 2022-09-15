@@ -76,7 +76,7 @@ def copy_cmd(ctx, src, dst):
     )
 
 # buildifier: disable=function-docstring
-def copy_bash(ctx, src, dst):
+def copy_bash(ctx, src, expanded_srcs, dst):
     if dst.is_directory:
         cmd_tmpl = "rm -rf \"$2\" && cp -fR \"$1/\" \"$2\""
         mnemonic = "CopyDirectory"
@@ -87,6 +87,7 @@ def copy_bash(ctx, src, dst):
         progress_message = "Copying file %s" % src.path
 
     ctx.actions.run_shell(
+        inputs = [src] + expanded_srcs,
         tools = [src],
         outputs = [dst],
         command = cmd_tmpl,
@@ -100,7 +101,9 @@ def copy_bash(ctx, src, dst):
 def _copy_file_impl(ctx):
     # When creating a directory, declare that to Bazel so downstream rules
     # see it as a TreeArtifact and handle correctly, e.g. for remote execution
+    expanded_src = []
     if getattr(ctx.attr, "is_directory", False):
+        expanded_src = ctx.attr.expanded_src
         output = ctx.actions.declare_directory(ctx.attr.out)
     else:
         output = ctx.outputs.out
@@ -115,7 +118,7 @@ def _copy_file_impl(ctx):
     elif ctx.attr.is_windows:
         copy_cmd(ctx, ctx.file.src, output)
     else:
-        copy_bash(ctx, ctx.file.src, output)
+        copy_bash(ctx, ctx.file.src, expanded_src, output)
 
     files = depset(direct = [output])
     runfiles = ctx.runfiles(files = [output])
@@ -135,6 +138,7 @@ _copy_directory = rule(
     implementation = _copy_file_impl,
     provides = [DefaultInfo],
     attrs = dict(_ATTRS, **{
+        "expanded_src": attr.label(),
         "is_directory": attr.bool(default = True),
         # Cannot declare out as an output here, because there's no API for declaring
         # TreeArtifact outputs.
